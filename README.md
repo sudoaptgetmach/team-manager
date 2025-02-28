@@ -7,6 +7,8 @@ Este é um aplicativo simples para gerenciar equipes.
 - Adicionar membros à equipe
 - Remover membros da equipe
 - Visualizar lista de membros da equipe
+
+- Criação de tickets
 - **Mais funcionalidades serão adicionadas em breve**.
 
 ## Tecnologias Utilizadas
