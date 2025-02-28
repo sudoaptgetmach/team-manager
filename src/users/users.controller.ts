@@ -26,6 +26,11 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
+  @Get('/:id/tickets')
+  findTickets(@Param('id') id: UUID) {
+    return this.usersService.findTickets(id);
+  }
+
   @Patch('/update/:id')
   update(@Param('id') id: UUID, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);

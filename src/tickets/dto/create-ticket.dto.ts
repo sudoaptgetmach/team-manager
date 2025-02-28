@@ -1,31 +1,27 @@
-import { IsEnum, IsNotEmpty, IsString, IsUUID } from "class-validator";
-import { TicketPriority } from "../enums/ticket-priority.enum";
-import { TicketStatus } from "../enums/ticket-status.enum";
-import { UUID } from "crypto";
-import { User } from "src/users/entities/user.entity";
-import { Department } from "src/departments/entities/department.entity";
+import { IsUUID, IsString, IsEnum } from 'class-validator';
+import { TicketPriority } from '../enums/ticket-priority.enum';
+import { TicketStatus } from '../enums/ticket-status.enum';
+import { UUID } from 'crypto';
 
 export class CreateTicketDto {
-    @IsString()
-    @IsNotEmpty()
-    title: string;
+  @IsString()
+  title: string;
 
-    @IsString()
-    @IsNotEmpty()
-    description: string;
-    
-    @IsEnum(TicketPriority)
-    priority: TicketPriority = TicketPriority.LOW;
+  @IsString()
+  description: string;
 
-    @IsUUID()
-    @IsNotEmpty()
-    department: Department;
+  @IsUUID()
+  department: UUID;
 
-    @IsUUID()
-    @IsNotEmpty()
-    user: User;
+  @IsUUID()
+  user: UUID;
 
-    @IsUUID()
-    @IsNotEmpty()
-    assignee: User;
+  @IsUUID()
+  assignee: UUID;
+
+  @IsEnum(TicketPriority)
+  priority: TicketPriority = TicketPriority.LOW;
+
+  @IsEnum(TicketStatus)
+  status: TicketStatus = TicketStatus.OPEN;
 }

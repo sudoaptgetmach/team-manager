@@ -1,23 +1,25 @@
-import { PartialType } from '@nestjs/mapped-types';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { TicketPriority } from '../enums/ticket-priority.enum';
-import { CreateTicketDto } from './create-ticket.dto';
+import { TicketStatus } from '../enums/ticket-status.enum';
 
-export class UpdateTicketDto extends PartialType(CreateTicketDto) {
-
+export class UpdateTicketDto {
     @IsString()
-    @IsNotEmpty()
     @IsOptional()
+    @IsNotEmpty()
     title: string;
     
     @IsString()
-    @IsNotEmpty()
     @IsOptional()
+    @IsNotEmpty()
     description: string;
     
+    @IsEnum(TicketStatus)
+    @IsOptional()
+    @IsNotEmpty()
+    status: TicketStatus;
+
     @IsEnum(TicketPriority)
     @IsOptional()
     @IsNotEmpty()
-    priority: TicketPriority;  
-
+    priority: TicketPriority;
 }

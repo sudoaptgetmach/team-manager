@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -24,12 +24,19 @@ export class TicketsController {
     return this.ticketsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Get(':id/users')
+  findUsers(@Param('id') id: UUID) {
+    return this.ticketsService.findUsers(id);
+  }
+
+  @Patch('/update/:id')
+  @HttpCode(HttpStatus.ACCEPTED)
   update(@Param('id') id: UUID, @Body() updateTicketDto: UpdateTicketDto) {
     return this.ticketsService.update(id, updateTicketDto);
   }
 
-  @Delete(':id')
+  @Delete('/delete/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: UUID) {
     return this.ticketsService.remove(id);
   }

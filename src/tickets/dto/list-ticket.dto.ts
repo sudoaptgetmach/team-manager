@@ -17,7 +17,7 @@ export class ListTicketDto {
       this.id = ticket.id;
       this.title = ticket.title;
       this.description = ticket.description;
-      this.status = ticket.status;
+      this.status = ticket.status.toString();
       this.priority = ticket.priority;
       this.department = department.name;
       this.user = user.name || "null";

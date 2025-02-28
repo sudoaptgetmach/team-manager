@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpCode, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UUID } from 'crypto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -22,82 +22,86 @@ export class TicketsService {
               private departmentRepository: Repository<Department>) {}
 
   async create(createTicketDto: CreateTicketDto) {
-    const user = await this.userRepository.findOne({ where: { id: createTicketDto.user.id }, relations: ['department'] });
-    const assignee = await this.userRepository.findOne({ where: { id: createTicketDto.assignee.id }, relations: ['department'] });
-    if (!user || !assignee) {
-      throw new NotFoundException(`User with ID ${createTicketDto.user.id} or assignee with ID ${createTicketDto.user.id} not found`);
+    const { title, description, priority, department, user, assignee } = createTicketDto;
+  
+    const userEntity = await this.userRepository.findOne({ where: { id: user }, relations: ['department'] });
+    const assigneeEntity = await this.userRepository.findOne({ where: { id: assignee }, relations: ['department'] });
+    if (!userEntity || !assigneeEntity) {
+      throw new NotFoundException(`User with ID ${user} or assignee with ID ${assignee} not found`);
     }
   
-    const department = await this.departmentRepository.findOne({ where: { id: createTicketDto.department.id } });
-    if (!department) {
-      throw new NotFoundException(`Department with ID ${createTicketDto.department.id} not found`);
+    const departmentEntity = await this.departmentRepository.findOne({ where: { id: department } });
+    if (!departmentEntity) {
+      throw new NotFoundException(`Department with ID ${department} not found`);
     }
-    
-    if (user.department.id !== department.id || assignee.department.id !== department.id) {
+  
+    if (userEntity.department.id !== departmentEntity.id || assigneeEntity.department.id !== departmentEntity.id) {
       throw new ConflictException('User and assignee must be in the same department');
     }
   
     const newTicket = this.ticketRepository.create({
-      ...createTicketDto,
+      title,
+      description,
       status: TicketStatus.OPEN,
-      department,
-      user,
-      assignee,
+      priority,
+      department: departmentEntity,
+      user: userEntity,
+      assignee: assigneeEntity,
     });
   
     await this.ticketRepository.save(newTicket);
-    return new ListTicketDto(newTicket, user, assignee, department);
+    return new ListTicketDto(newTicket, userEntity, assigneeEntity, departmentEntity);
   }
 
   async findAll(paginationDto: PaginationDto) {
-        const { limit = 10, offset = 0 } = paginationDto || {};
-    
-        const tickets = await this.ticketRepository.find({
-            take: limit,
-            skip: offset,
-            order: {
-                id: 'asc',
-            },
-            relations: ['department', 'user', 'assignee'],
-            select: {
-              department: {
-                  id: true,
-                  name: true
-              },
-              user: {
-                  id: true,
-                  name: true
-              },
-              assignee: {
-                  id: true,
-                  name: true
-              }
-            }
-           }
-        );
-
-        if (!tickets || tickets.length === 0) {
-            throw new NotFoundException("Nenhum ticket foi encontrado.");
-        }
-    
-        const ticketDtos = await Promise.all(tickets.map(async (ticket) => {
-          const user = await this.userRepository.findOne({ where: { id: ticket.user.id } });
-          const assignee = await this.userRepository.findOne({ where: { id: ticket.assignee.id } });
-          const department = await this.departmentRepository.findOne({ where: { id: ticket.department.id } });
-    
-          if (!user || !assignee || !department) {
-            throw new NotFoundException('User, assignee, or department not found');
+    const { limit = 10, offset = 0 } = paginationDto || {};
+  
+    const tickets = await this.ticketRepository.find({
+        take: limit,
+        skip: offset,
+        order: {
+            id: 'asc',
+        },
+        relations: ['department', 'user', 'assignee'],
+        select: {
+          department: {
+              id: true,
+              name: true
+          },
+          user: {
+              id: true,
+              name: true
+          },
+          assignee: {
+              id: true,
+              name: true
           }
-    
-          return {
-            ...new ListTicketDto(ticket, user, assignee, department),
-            openedAt: ticket.openedAt?.toDateString(),
-            updatedAt: ticket.updatedAt?.toDateString()
-          };
-        }));
-    
-        return ticketDtos;
+        }
+       }
+    );
+
+    if (!tickets || tickets.length === 0) {
+        throw new NotFoundException("Nenhum ticket foi encontrado.");
+    }
+  
+    const ticketDtos = await Promise.all(tickets.map(async (ticket) => {
+      const user = await this.userRepository.findOne({ where: { id: ticket.user.id } });
+      const assignee = await this.userRepository.findOne({ where: { id: ticket.assignee.id } });
+      const department = await this.departmentRepository.findOne({ where: { id: ticket.department.id } });
+  
+      if (!user || !assignee || !department) {
+        throw new NotFoundException('User, assignee, or department not found');
       }
+  
+      return {
+        ...new ListTicketDto(ticket, user, assignee, department),
+        openedAt: ticket.openedAt?.toDateString(),
+        updatedAt: ticket.updatedAt?.toDateString()
+      };
+    }));
+  
+    return ticketDtos;
+  }
 
   async findOne(id: UUID) {
     const ticket = await this.ticketRepository.findOne({ where: { id }, relations: ['department', 'user', 'assignee'] });
@@ -117,11 +121,77 @@ export class TicketsService {
     return new ListTicketDto(ticket, user, assignee, department);
   }
 
-  update(id: UUID, updateTicketDto: UpdateTicketDto) {
-    return `This action updates a #${id} ticket`;
+  async findUsers(id: UUID) {
+    const ticket = await this.ticketRepository.findOne({ where: { id }, 
+      relations: ['department', 'user', 'assignee'],
+      select: {
+        department: {
+          id: true,
+          name: true,
+        },
+        user: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+        assignee: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        }
+      } 
+    });
+
+    if (!ticket) {
+      throw new NotFoundException(`Unable to find ticket with UUID ${id}.`);
+    }
+
+    const user = ticket.user;
+    const assignee = ticket.assignee;
+
+    if (!user || !assignee) {
+      throw new NotFoundException(`Unable to find User and/or Assignee.`);
+    }
+
+    return ticket;
   }
 
-  remove(id: UUID) {
-    return `This action removes a #${id} ticket`;
+  async update(id: UUID, updateTicketDto: UpdateTicketDto) {
+    if (Object.values(updateTicketDto).every(value => value === undefined)) {
+        throw new BadRequestException('A requisição não pode estar vazia.');
+    }
+
+    const ticket = this.ticketRepository.findOne({ where: { id }, relations: ['department', 'user', 'assignee'] });
+
+    if (!ticket) {
+      throw new NotFoundException(`Ticket with UUID ${id} not found.`);
+    }
+
+    const newInfo = {
+      ...updateTicketDto,
+      updatedAt: new Date()
+    }
+
+    await this.ticketRepository.update(id, newInfo);
+
+    const updatedTicket = await this.ticketRepository.findOne({ where: { id }, relations: ['department', 'user', 'assignee'] });
+
+    if (!updatedTicket) {
+        throw new InternalServerErrorException(`Error while updating ticket ${id}.`);
+    }
+
+    return new ListTicketDto(updatedTicket, updatedTicket.user, updatedTicket.assignee, updatedTicket.department);
+  }
+
+  async remove(id: UUID) {
+    const ticket = this.ticketRepository.findOne({ where: { id }, relations: ['department', 'user', 'assignee'] });
+
+    if (!ticket) {
+      throw new NotFoundException(`Ticket with UUID ${id} not found.`);
+    }
+
+    return this.ticketRepository.delete(id);
   }
 }

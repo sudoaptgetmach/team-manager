@@ -26,17 +26,17 @@ export class Ticket {
     @Column({ type: "enum", enum: TicketPriority, default: TicketPriority.LOW })
     priority: TicketPriority;
 
-    @ManyToOne(() => Department)
+    @ManyToOne(() => Department, { onUpdate: "CASCADE", onDelete: "CASCADE" })
     @JoinColumn({ name: "departmentId" })
     @IsUUID()
     department: Department;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onUpdate: "CASCADE", onDelete: "CASCADE" })
     @JoinColumn({ name: "userId" })
     @IsUUID()
     user: User;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onUpdate: "CASCADE", onDelete: "CASCADE" })
     @JoinColumn({ name: "assigneeId" })
     @IsUUID()
     assignee: User;

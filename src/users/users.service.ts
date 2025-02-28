@@ -8,13 +8,16 @@ import { ListUserDto } from './dto/list-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { Department } from 'src/departments/entities/department.entity';
+import { Ticket } from 'src/tickets/entities/ticket.entity';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectRepository(User)
               private readonly userRepository: Repository<User>,
               @InjectRepository(Department)
-              private readonly departmentRepository: Repository<Department>) {}
+              private readonly departmentRepository: Repository<Department>,
+              @InjectRepository(Ticket)
+              private readonly ticketRepository: Repository<Ticket>) {}
 
   async create(createUserDto: CreateUserDto) {
     const { name, email, password, departmentId } = createUserDto;
@@ -90,6 +93,51 @@ export class UsersService {
     };
 
     throw new NotFoundException("Usuário não encontrado.");
+  }
+
+  async findTickets(id: UUID) {
+    const user = this.userRepository.findOne({ where: { id }, 
+      relations: ['department', 'tickets'],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: {
+          id: true,
+          name: true,
+        },
+    }});
+
+    if (!user) {
+      throw new NotFoundException(`User with UUID ${id} not found.`);
+    }
+
+    const tickets = await this.ticketRepository.createQueryBuilder('ticket')
+    .leftJoinAndSelect('ticket.user', 'user')
+    .leftJoinAndSelect('ticket.assignee', 'assignee')
+    .where('ticket.user.id = :id OR ticket.assignee.id = :id', { id })
+    .select([
+      'ticket.id',
+      'ticket.title',
+      'ticket.description',
+      'ticket.status',
+      'ticket.priority',
+      'user.id',
+      'user.name',
+      'assignee.id',
+      'assignee.name',
+    ])
+    .getMany();
+
+    if (tickets.length === 0) {
+      throw new NotFoundException(`Unable to find tickets for user ${id}.`)
+    }
+
+    return {
+      ...user,
+      tickets,
+    };
   }
 
   async update(id: UUID, updateUserDto: UpdateUserDto) {
