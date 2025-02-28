@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, UsePipes } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -8,6 +8,7 @@ import { DepartmentsModule } from './departments/departments.module';
 import { TicketAssignmentsModule } from './ticket_assignments/ticket_assignments.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { UsersModule } from './users/users.module';
+import { ValidateUuidPipe } from './common/pipes/parse-uuid.pipe';
 
 @Module({
   imports: [ConfigModule.forRoot(),

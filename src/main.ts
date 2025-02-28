@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidateUuidPipe } from './common/pipes/parse-uuid.pipe';
 
 async function bootstrap() {
   
@@ -20,7 +21,7 @@ async function bootstrap() {
     transform: true,
     whitelist: true,
     forbidNonWhitelisted: true,
-}));
+}), new ValidateUuidPipe());
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

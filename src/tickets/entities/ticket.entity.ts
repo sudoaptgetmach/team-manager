@@ -29,17 +29,17 @@ export class Ticket {
     @ManyToOne(() => Department)
     @JoinColumn({ name: "departmentId" })
     @IsUUID()
-    departmentId: UUID;
+    department: Department;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: "userId" })
     @IsUUID()
-    userId: UUID;
+    user: User;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: "assigneeId" })
     @IsUUID()
-    assigneeId: UUID;
+    assignee: User;
 
     @CreateDateColumn()
     openedAt: Date;
