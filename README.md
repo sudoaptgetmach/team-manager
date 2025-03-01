@@ -4,12 +4,17 @@ Este é um aplicativo simples para gerenciar equipes.
 
 ## Funcionalidades
 
+- Sistema de autenticação com [JWT](https://auth0.com/docs/secure/tokens/json-web-tokens)
+
 - Adicionar membros à equipe
 - Remover membros da equipe
 - Visualizar lista de membros da equipe
 
-- Criação de tickets
-- **Mais funcionalidades serão adicionadas em breve**.
+- Criação de tickets com sistema de prioridades:
+    LOW\
+    MEDIUM\
+    HIGH\
+    URGENT
 
 ## Tecnologias Utilizadas
 
