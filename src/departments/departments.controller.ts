@@ -1,13 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { UUID } from 'crypto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ValidateUuidPipe } from 'src/common/pipes/parse-uuid.pipe';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 
 @Controller('departments')
 @UsePipes(ValidateUuidPipe)
+@UseGuards(AuthTokenGuard)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 

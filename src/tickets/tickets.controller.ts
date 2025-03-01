@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { UUID } from 'crypto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 
 @Controller('tickets')
+@UseGuards(AuthTokenGuard)
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 

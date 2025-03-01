@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UUID } from 'crypto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -9,44 +9,32 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { Department } from 'src/departments/entities/department.entity';
 import { Ticket } from 'src/tickets/entities/ticket.entity';
+import { HashingService } from 'src/auth/hash/hashing.service';
+import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
+import { UserRoles } from './enum/user-roles.enum';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User)
+  constructor(private readonly hashingService: HashingService,
+              @InjectRepository(User)
               private readonly userRepository: Repository<User>,
               @InjectRepository(Department)
               private readonly departmentRepository: Repository<Department>,
               @InjectRepository(Ticket)
               private readonly ticketRepository: Repository<Ticket>) {}
 
-  async create(createUserDto: CreateUserDto) {
-    const { name, email, password, departmentId } = createUserDto;
-  
-    const department = await this.departmentRepository.findOne({ where: { id: departmentId } });
-    if (!department) {
-      throw new NotFoundException(`Department with ID ${departmentId} not found`);
-    }
-  
-    const newUser = this.userRepository.create({
-      name,
-      email,
-      password,
-      department,
-    });
-  
-    try {
-      await this.userRepository.save(newUser);
-      return newUser;
-    } catch (error) {
-      if (error.code === '23505') {
-        throw new ConflictException('Email already exists');
-      }
-      throw error;
-    }
-  }
-
-  async findAll(paginationDto: PaginationDto) {
+  async findAll(paginationDto: PaginationDto, tokenPayload: TokenPayloadDto) {
     const { limit = 10, offset = 0 } = paginationDto || {};
+
+    const sender = await this.userRepository.findOneBy( { id: tokenPayload.sub });
+
+    if (!sender) {
+        throw new InternalServerErrorException(`Unable to find sender.`);
+    }
+
+    if (sender.role !== UserRoles.ADMIN) {
+      throw new UnauthorizedException();
+    }
 
     const users = await this.userRepository.find({
         take: limit,
@@ -73,7 +61,14 @@ export class UsersService {
     }));
   }
 
-  async findOne(id: UUID) {
+  async findOne(id: UUID, tokenPayload: TokenPayloadDto) {
+
+    const sender = await this.userRepository.findOneBy( { id: tokenPayload.sub });
+
+    if (!sender) {
+        throw new InternalServerErrorException(`Unable to find sender.`);
+    }
+
      const user = await this.userRepository.findOne({
        where: { id },
        relations: ['department'],
@@ -85,6 +80,10 @@ export class UsersService {
        }
     });
 
+    if (sender.role !== UserRoles.ADMIN) {
+      throw new UnauthorizedException();
+    }
+
     if (user) return {
         ...new ListUserDto(user),
         department: user.department,
@@ -95,7 +94,14 @@ export class UsersService {
     throw new NotFoundException("Usuário não encontrado.");
   }
 
-  async findTickets(id: UUID) {
+  async findTickets(id: UUID, tokenPayload: TokenPayloadDto) {
+
+    const sender = await this.userRepository.findOneBy( { id: tokenPayload.sub });
+
+    if (!sender) {
+        throw new InternalServerErrorException(`Unable to find sender.`);
+    }
+
     const user = this.userRepository.findOne({ where: { id }, 
       relations: ['department', 'tickets'],
       select: {
@@ -111,6 +117,10 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException(`User with UUID ${id} not found.`);
+    }
+
+    if (id !== tokenPayload.sub && sender.role !== UserRoles.ADMIN) {
+      throw new UnauthorizedException();
     }
 
     const tickets = await this.ticketRepository.createQueryBuilder('ticket')
@@ -140,8 +150,14 @@ export class UsersService {
     };
   }
 
-  async update(id: UUID, updateUserDto: UpdateUserDto) {
+  async update(id: UUID, updateUserDto: UpdateUserDto, tokenPayload: TokenPayloadDto) {
     try {
+      const sender = await this.userRepository.findOneBy( { id: tokenPayload.sub });
+
+      if (!sender) {
+          throw new InternalServerErrorException(`Unable to find sender.`);
+      }
+
       if (Object.values(updateUserDto).every(value => value === undefined)) {
         throw new BadRequestException('A requisição não pode estar vazia.');
       }
@@ -152,11 +168,15 @@ export class UsersService {
         throw new NotFoundException(`Usuário com o ID ${id} não foi encontrado.`);
       }
 
+      if (user.id !== tokenPayload.sub && sender.role !== UserRoles.ADMIN) {
+        throw new UnauthorizedException();
+      }
+
       let department: Department = user.department;
-      if (updateUserDto.departmentId) {
-        const foundDepartment = await this.departmentRepository.findOne({ where: { id: updateUserDto.departmentId } });
+      if (updateUserDto.department?.id) {
+        const foundDepartment = await this.departmentRepository.findOne({ where: { id: updateUserDto.department.id } });
         if (!foundDepartment) {
-          throw new NotFoundException(`Departamento com o ID ${updateUserDto.departmentId} não foi encontrado.`);
+          throw new NotFoundException(`Departamento com o ID ${updateUserDto.department.id} não foi encontrado.`);
         }
         department = foundDepartment;
       }
@@ -167,9 +187,17 @@ export class UsersService {
         updatedAt: new Date(),
       };
 
+      if (updateUserDto?.password) {
+        const password = await this.hashingService.hash(
+          updateUserDto.password,
+        );
+
+        updatedData['password'] = password;
+      }
+
       await this.userRepository.update(id, updatedData);
 
-      const updatedUser = await this.userRepository.findOne({ where: { id } });
+      const updatedUser = await this.userRepository.findOne({ where: { id }, relations: ['department'] });
 
       if (!updatedUser) {
         throw new InternalServerErrorException('Erro ao atualizar o usuário.');
@@ -185,11 +213,18 @@ export class UsersService {
         throw new ConflictException("O E-mail informado já está em uso.");
       }
 
-      throw new InternalServerErrorException("Um erro inesperado ocorreu.");
+      throw new InternalServerErrorException("Um erro inesperado ocorreu.\n" + e);
     }
   }
 
-  async remove(id: UUID) {
+  async remove(id: UUID, tokenPayload: TokenPayloadDto) {
+
+    const sender = await this.userRepository.findOneBy( { id: tokenPayload.sub });
+
+    if (!sender) {
+        throw new InternalServerErrorException(`Unable to find sender.`);
+    }
+
     const user = await this.userRepository.findOne({
       where: {
           id
@@ -199,6 +234,11 @@ export class UsersService {
     if (!user) {
         throw new NotFoundException(`O usuário de ID ${id} não foi encontrado.`);
     }
+
+    if (user.id !== tokenPayload.sub && sender.role !== UserRoles.ADMIN) {
+        throw new UnauthorizedException();
+    }
+
     return this.userRepository.delete(id);
   }
 }

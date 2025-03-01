@@ -7,12 +7,14 @@ import { Department } from '../departments/entities/department.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 import { DepartmentsModule } from '../departments/departments.module';
 import { TicketsModule } from '../tickets/tickets.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Department, Ticket]),
     forwardRef(() => DepartmentsModule),
     forwardRef(() => TicketsModule),
+    AuthModule
   ],
   controllers: [UsersController],
   providers: [UsersService],
