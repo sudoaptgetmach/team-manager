@@ -1,8 +1,10 @@
 # compiled output
-/dist
-/node_modules
-/build
-/frontend
+backend/node_modules/
+backend/dist/
+build/
+frontend/
+node_modules/
+dist/
 
 # Logs
 logs
