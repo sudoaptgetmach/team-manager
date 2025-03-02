@@ -172,6 +172,11 @@ export class UsersService {
         throw new UnauthorizedException();
       }
 
+      const updatedData = {
+        ...updateUserDto,
+        updatedAt: new Date(),
+      };
+
       let department: Department = user.department;
       if (updateUserDto.department?.id) {
         const foundDepartment = await this.departmentRepository.findOne({ where: { id: updateUserDto.department.id } });
@@ -179,13 +184,8 @@ export class UsersService {
           throw new NotFoundException(`Departamento com o ID ${updateUserDto.department.id} não foi encontrado.`);
         }
         department = foundDepartment;
+        updatedData['department'] = department;
       }
-
-      const updatedData = {
-        ...updateUserDto,
-        department: department || user.department,
-        updatedAt: new Date(),
-      };
 
       if (updateUserDto?.password) {
         const password = await this.hashingService.hash(

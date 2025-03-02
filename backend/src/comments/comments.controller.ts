@@ -3,14 +3,16 @@ import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
+import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 
 @Controller('comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentsService.create(createCommentDto);
+  create(@Body() createCommentDto: CreateCommentDto, @TokenPayloadParam() tokenPayload: TokenPayloadDto) {
+    return this.commentsService.create(createCommentDto, tokenPayload);
   }
 
   @Get()

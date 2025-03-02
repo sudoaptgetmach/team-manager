@@ -14,13 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("typeorm");
-const user_entity_1 = require("../users/entities/user.entity");
-const typeorm_2 = require("@nestjs/typeorm");
-const hashing_service_1 = require("./hash/hashing.service");
-const jwt_config_1 = require("./config/jwt.config");
 const jwt_1 = require("@nestjs/jwt");
+const typeorm_1 = require("@nestjs/typeorm");
 const department_entity_1 = require("../departments/entities/department.entity");
+const user_entity_1 = require("../users/entities/user.entity");
+const typeorm_2 = require("typeorm");
+const jwt_config_1 = require("./config/jwt.config");
+const hashing_service_1 = require("./hash/hashing.service");
 let AuthService = class AuthService {
     userRepository;
     departmentRepository;
@@ -36,11 +36,26 @@ let AuthService = class AuthService {
     }
     async create(createUserDto) {
         const { name, email, password, departmentId } = createUserDto;
-        const department = await this.departmentRepository.findOne({ where: { id: departmentId } });
-        if (!department) {
-            throw new common_1.NotFoundException(`Department with ID ${departmentId} not found`);
+        let department = undefined;
+        if (departmentId) {
+            const foundDepartment = await this.departmentRepository.findOne({
+                where: { id: departmentId },
+            });
+            if (!foundDepartment) {
+                throw new common_1.NotFoundException(`Department with ID ${departmentId} not found`);
+            }
+            department = foundDepartment;
         }
-        const passwordHash = await this.hashingService.hash(createUserDto.password);
+        else {
+            const foundDepartment = await this.departmentRepository.findOne({
+                where: { name: 'Placeholder' },
+            });
+            department = foundDepartment ?? undefined;
+            if (!department) {
+                throw new common_1.NotFoundException('Placeholder department not found');
+            }
+        }
+        const passwordHash = await this.hashingService.hash(password);
         const newUser = this.userRepository.create({
             name,
             email,
@@ -62,7 +77,7 @@ let AuthService = class AuthService {
         let validPassword = false;
         let throwError = true;
         const user = await this.userRepository.findOneBy({
-            email: loginDto.email
+            email: loginDto.email,
         });
         if (user) {
             validPassword = await this.hashingService.compare(loginDto.password, user.password);
@@ -75,7 +90,7 @@ let AuthService = class AuthService {
                 audience: this.jwtConfiguration.audience,
                 issuer: this.jwtConfiguration.issuer,
                 secret: this.jwtConfiguration.secret,
-                expiresIn: this.jwtConfiguration.ttl
+                expiresIn: this.jwtConfiguration.ttl,
             });
             return {
                 message: `Usuário logado com sucesso.
@@ -85,17 +100,16 @@ let AuthService = class AuthService {
         if (throwError) {
             throw new common_1.UnauthorizedException('Invalid user or password.');
         }
-        ;
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_2.InjectRepository)(user_entity_1.User)),
-    __param(1, (0, typeorm_2.InjectRepository)(department_entity_1.Department)),
+    __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(1, (0, typeorm_1.InjectRepository)(department_entity_1.Department)),
     __param(3, (0, common_1.Inject)(jwt_config_1.default.KEY)),
-    __metadata("design:paramtypes", [typeorm_1.Repository,
-        typeorm_1.Repository,
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         hashing_service_1.HashingService, void 0, jwt_1.JwtService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

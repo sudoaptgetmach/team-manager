@@ -17,13 +17,15 @@ const common_1 = require("@nestjs/common");
 const comments_service_1 = require("./comments.service");
 const create_comment_dto_1 = require("./dto/create-comment.dto");
 const update_comment_dto_1 = require("./dto/update-comment.dto");
+const token_payload_dto_1 = require("../auth/dto/token-payload.dto");
+const token_payload_param_1 = require("../auth/params/token-payload.param");
 let CommentsController = class CommentsController {
     commentsService;
     constructor(commentsService) {
         this.commentsService = commentsService;
     }
-    create(createCommentDto) {
-        return this.commentsService.create(createCommentDto);
+    create(createCommentDto, tokenPayload) {
+        return this.commentsService.create(createCommentDto, tokenPayload);
     }
     findAll() {
         return this.commentsService.findAll();
@@ -42,8 +44,9 @@ exports.CommentsController = CommentsController;
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, token_payload_param_1.TokenPayloadParam)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_comment_dto_1.CreateCommentDto]),
+    __metadata("design:paramtypes", [create_comment_dto_1.CreateCommentDto, token_payload_dto_1.TokenPayloadDto]),
     __metadata("design:returntype", void 0)
 ], CommentsController.prototype, "create", null);
 __decorate([

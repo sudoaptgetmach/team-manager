@@ -21,6 +21,7 @@ let User = class User {
     email;
     password;
     role;
+    isOwner;
     department;
     tickets;
     createdAt;
@@ -49,6 +50,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: "enum", enum: user_roles_enum_1.UserRoles, default: user_roles_enum_1.UserRoles.USER }),
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isOwner", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => department_entity_1.Department, department => department.users, { onUpdate: "CASCADE", onDelete: "CASCADE" }),
     (0, typeorm_1.JoinColumn)({ name: "department_id" }),

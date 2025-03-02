@@ -8,6 +8,7 @@ export declare class User {
     email: string;
     password: string;
     role: UserRoles;
+    isOwner: boolean;
     department: Department;
     tickets: Ticket[];
     createdAt: Date;

@@ -155,6 +155,10 @@ let UsersService = class UsersService {
             if (user.id !== tokenPayload.sub && sender.role !== user_roles_enum_1.UserRoles.ADMIN) {
                 throw new common_1.UnauthorizedException();
             }
+            const updatedData = {
+                ...updateUserDto,
+                updatedAt: new Date(),
+            };
             let department = user.department;
             if (updateUserDto.department?.id) {
                 const foundDepartment = await this.departmentRepository.findOne({ where: { id: updateUserDto.department.id } });
@@ -162,12 +166,8 @@ let UsersService = class UsersService {
                     throw new common_1.NotFoundException(`Departamento com o ID ${updateUserDto.department.id} não foi encontrado.`);
                 }
                 department = foundDepartment;
+                updatedData['department'] = department;
             }
-            const updatedData = {
-                ...updateUserDto,
-                department: department || user.department,
-                updatedAt: new Date(),
-            };
             if (updateUserDto?.password) {
                 const password = await this.hashingService.hash(updateUserDto.password);
                 updatedData['password'] = password;

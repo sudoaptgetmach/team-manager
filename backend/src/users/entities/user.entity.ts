@@ -26,6 +26,9 @@ export class User {
     @Column({ type: "enum", enum: UserRoles, default: UserRoles.USER })
     role: UserRoles;
 
+    @Column({ type: "boolean", default: false })
+    isOwner: boolean;
+
     @ManyToOne(() => Department, department => department.users, { onUpdate: "CASCADE", onDelete: "CASCADE" })
     @JoinColumn({ name: "department_id" })
     @IsUUID()
